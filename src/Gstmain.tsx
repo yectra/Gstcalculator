@@ -1,172 +1,358 @@
-import React, { useState } from 'react';
-import axios from 'axios';
+import React, { useState } from "react";
 import {
-  AppBar, Toolbar, IconButton, Typography, TextField, Button, Box, Grid, Card, CardContent, MenuItem, Select, FormControl, InputLabel, Paper
-} from '@mui/material';
-import { Menu as MenuIcon, AttachMoney } from '@mui/icons-material';
+  AppBar,
+  Toolbar,
+  IconButton,
+  Typography,
+  TextField,
+  Button,
+  Box,
+  Grid,
+  Card,
+  CardContent,
+  MenuItem,
+  Select,
+  FormControl,
+  InputLabel,
+  Paper,
+  CircularProgress,
+  Snackbar,
+  Alert,
+  Container,
+  ThemeProvider,
+  createTheme,
+  CssBaseline,
+} from "@mui/material";
+import {
+  Menu as MenuIcon,
+  AttachMoney,
+  Calculate,
+  Info,
+} from "@mui/icons-material";
+
+const theme = createTheme({
+  palette: {
+    primary: {
+      main: "#1976d2",
+    },
+    secondary: {
+      main: "#f50057",
+    },
+    background: {
+      default: "#f5f5f5",
+    },
+  },
+});
 
 const GSTCalculator: React.FC = () => {
-  const [amount, setAmount] = useState<string>('0');
-  const [gstRate, setGstRate] = useState<string>("5");  // Default GST% is 5%
-  const [taxType, setTaxType] = useState<'Exclusive' | 'Inclusive'>('Exclusive');
+  const [amount, setAmount] = useState<string>("0");
+  const [gstRate, setGstRate] = useState<string>("5");
+  const [taxType, setTaxType] = useState<"Exclusive" | "Inclusive">(
+    "Exclusive"
+  );
   const [totalAmount, setTotalAmount] = useState<number | null>(null);
   const [actualAmount, setActualAmount] = useState<number | null>(null);
   const [gstAmount, setGstAmount] = useState<number | null>(null);
-  const [is_inclusive, setIsInclusive] = useState<string>('false');
+  const [loading, setLoading] = useState<boolean>(false);
+  const [snackbarOpen, setSnackbarOpen] = useState<boolean>(false);
+
+  const handleSnackbarClose = () => {
+    setSnackbarOpen(false);
+  };
 
   const handleCalculate = async () => {
     if (parseFloat(amount) <= 0) {
-      alert('Please enter a valid amount.');
+      setSnackbarOpen(true);
       return;
     }
 
-    if (taxType === 'Inclusive') {
-      setIsInclusive('true');
+    setLoading(true);
+
+    // Simulating API call
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+
+    const amountNum = parseFloat(amount);
+    const gstRateNum = parseFloat(gstRate);
+    let calculatedTotal, calculatedActual, calculatedGst;
+
+    if (taxType === "Inclusive") {
+      calculatedActual = amountNum / (1 + gstRateNum / 100);
+      calculatedGst = amountNum - calculatedActual;
+      calculatedTotal = amountNum;
     } else {
-      setIsInclusive('false');
+      calculatedActual = amountNum;
+      calculatedGst = amountNum * (gstRateNum / 100);
+      calculatedTotal = amountNum + calculatedGst;
     }
 
-    const formData = new FormData();
-    formData.append("amount", amount);
-    formData.append("gst_percentage", gstRate);
-    formData.append("is_inclusive", is_inclusive);
-
-    try {
-      const response = await axios.post('https://gst-calculator.azure-api.net/gst-calculator/api/calculate_gst', formData);
-      setTotalAmount(response.data.total_amount);
-      setActualAmount(response.data.actual_amount);
-      setGstAmount(response.data.gst_amount);
-    } catch (error) {
-      console.error('Error fetching data:', error);
-      alert('There was an error calculating GST. Please try again later.');
-    }
+    setTotalAmount(calculatedTotal);
+    setActualAmount(calculatedActual);
+    setGstAmount(calculatedGst);
+    setLoading(false);
   };
 
   return (
-    <Box>
-      <AppBar position="static">
-        <Toolbar>
-          <IconButton edge="start" color="inherit" aria-label="menu" sx={{ mr: 2 }}>
-            <MenuIcon />
-          </IconButton>
-          <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-            GST Calculator
-          </Typography>
-        </Toolbar>
-      </AppBar>
+    <ThemeProvider theme={theme}>
+      <CssBaseline />
+      <Box>
+        <AppBar position="static" color="primary">
+          <Toolbar>
+            <IconButton
+              edge="start"
+              color="inherit"
+              aria-label="menu"
+              sx={{ mr: 2 }}
+            >
+              <MenuIcon />
+            </IconButton>
+            <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
+              GST Calculator
+            </Typography>
+          </Toolbar>
+        </AppBar>
 
-      <Box p={4} bgcolor="#f5f5f5" minHeight="100vh">
-        <Box maxWidth={800} mx="auto" mb={4} p={3} borderRadius={3} bgcolor="white" boxShadow={3}>
-          <Grid container spacing={3}>
-            <Grid item xs={12} md={4}>
-              <TextField
-                label="Amount"
-                variant="outlined"
-                fullWidth
-                type="number"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                InputProps={{
-                  startAdornment: <AttachMoney color="action" />,
-                }}
-              />
-            </Grid>
-            <Grid item xs={12} md={4}>
-              <FormControl fullWidth variant="outlined">
-                <InputLabel>GST %</InputLabel>
-                <Select
-                  value={gstRate}
-                  onChange={(e) => setGstRate(e.target.value as string)}
-                  label="GST %"
+        <Container maxWidth="lg" sx={{ mt: 4 }}>
+          <Grid container spacing={4}>
+            <Grid item xs={12} md={6}>
+              <Paper elevation={3} sx={{ p: 4, height: "100%" }}>
+                <Typography
+                  variant="h5"
+                  gutterBottom
+                  sx={{ mb: 3, fontWeight: "bold", color: "primary.main" }}
                 >
-                  <MenuItem value={5}>5%</MenuItem>
-                  <MenuItem value={12}>12%</MenuItem>
-                  <MenuItem value={18}>18%</MenuItem>
-                  <MenuItem value={28}>28%</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={12} md={4}>
-              <FormControl fullWidth variant="outlined">
-                <InputLabel>Tax Type</InputLabel>
-                <Select
-                  value={taxType}
-                  onChange={(e) => setTaxType(e.target.value as 'Exclusive' | 'Inclusive')}
-                  label="Tax Type"
-                >
-                  <MenuItem value="Exclusive">Exclusive</MenuItem>
-                  <MenuItem value="Inclusive">Inclusive</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={12}>
-              <Box textAlign="center">
-                <Button variant="contained" color="primary" onClick={handleCalculate}>
                   Calculate GST
-                </Button>
-              </Box>
+                </Typography>
+                <Grid container spacing={3}>
+                  <Grid item xs={12}>
+                    <TextField
+                      label="Amount"
+                      variant="outlined"
+                      fullWidth
+                      type="number"
+                      value={amount}
+                      onChange={(e) => setAmount(e.target.value)}
+                      InputProps={{
+                        startAdornment: <AttachMoney color="action" />,
+                      }}
+                    />
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <FormControl fullWidth variant="outlined">
+                      <InputLabel>GST %</InputLabel>
+                      <Select
+                        value={gstRate}
+                        onChange={(e) => setGstRate(e.target.value as string)}
+                        label="GST %"
+                      >
+                        <MenuItem value={5}>5%</MenuItem>
+                        <MenuItem value={12}>12%</MenuItem>
+                        <MenuItem value={18}>18%</MenuItem>
+                        <MenuItem value={28}>28%</MenuItem>
+                      </Select>
+                    </FormControl>
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <FormControl fullWidth variant="outlined">
+                      <InputLabel>Tax Type</InputLabel>
+                      <Select
+                        value={taxType}
+                        onChange={(e) =>
+                          setTaxType(
+                            e.target.value as "Exclusive" | "Inclusive"
+                          )
+                        }
+                        label="Tax Type"
+                      >
+                        <MenuItem value="Exclusive">Exclusive</MenuItem>
+                        <MenuItem value="Inclusive">Inclusive</MenuItem>
+                      </Select>
+                    </FormControl>
+                  </Grid>
+                  <Grid item xs={12}>
+                    <Button
+                      variant="contained"
+                      color="primary"
+                      fullWidth
+                      size="large"
+                      onClick={handleCalculate}
+                      disabled={loading}
+                      startIcon={
+                        loading ? (
+                          <CircularProgress size={24} color="inherit" />
+                        ) : (
+                          <Calculate />
+                        )
+                      }
+                    >
+                      {loading ? "Calculating..." : "Calculate GST"}
+                    </Button>
+                  </Grid>
+                </Grid>
+              </Paper>
+            </Grid>
+
+            <Grid item xs={12} md={6}>
+              <Paper
+                elevation={3}
+                sx={{
+                  p: 4,
+                  height: "100%",
+                  display: "flex",
+                  flexDirection: "column",
+                }}
+              >
+                <Typography
+                  variant="h5"
+                  gutterBottom
+                  sx={{ mb: 3, fontWeight: "bold", color: "primary.main" }}
+                >
+                  Results
+                </Typography>
+                <Box
+                  sx={{
+                    height: "300px", // Fixed height
+                    overflowY: "auto", // Enable scroll if content exceeds height
+                    paddingRight: 2, // Add padding for scroll visibility
+                  }}
+                >
+                  {totalAmount !== null ? (
+                    <Box>
+                      <ResultCard
+                        label="Actual Amount (Before GST)"
+                        value={actualAmount}
+                      />
+                      <ResultCard label="GST Amount" value={gstAmount} />
+                      <ResultCard
+                        label="Total Amount"
+                        value={totalAmount}
+                        highlight
+                      />
+                    </Box>
+                  ) : (
+                    <Box
+                      sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        height: "100%",
+                      }}
+                    >
+                      <Typography variant="body1" color="text.secondary">
+                        Enter values and click Calculate to see results
+                      </Typography>
+                    </Box>
+                  )}
+                </Box>
+              </Paper>
+            </Grid>
+
+            <Grid item xs={12}>
+              <Paper elevation={3} sx={{ p: 4 }}>
+                <Typography
+                  variant="h5"
+                  color="primary"
+                  gutterBottom
+                  sx={{ display: "flex", alignItems: "center", gap: 1 }}
+                >
+                  <Info /> Understanding GST
+                </Typography>
+                <Typography variant="body1" paragraph>
+                  GST, or Goods and Services Tax, is a comprehensive indirect
+                  tax levied on the supply of goods and services in India. It
+                  has replaced multiple indirect taxes, simplifying the taxation
+                  system. GST is divided into three main components:
+                </Typography>
+                <Grid container spacing={2}>
+                  <Grid item xs={12} sm={4}>
+                    <Card variant="outlined">
+                      <CardContent>
+                        <Typography variant="h6" color="primary" gutterBottom>
+                          CGST
+                        </Typography>
+                        <Typography variant="body2">
+                          Central Goods and Services Tax, levied by the central
+                          government on intra-state transactions.
+                        </Typography>
+                      </CardContent>
+                    </Card>
+                  </Grid>
+                  <Grid item xs={12} sm={4}>
+                    <Card variant="outlined">
+                      <CardContent>
+                        <Typography variant="h6" color="primary" gutterBottom>
+                          SGST
+                        </Typography>
+                        <Typography variant="body2">
+                          State Goods and Services Tax, levied by the state
+                          government on intra-state transactions.
+                        </Typography>
+                      </CardContent>
+                    </Card>
+                  </Grid>
+                  <Grid item xs={12} sm={4}>
+                    <Card variant="outlined">
+                      <CardContent>
+                        <Typography variant="h6" color="primary" gutterBottom>
+                          IGST
+                        </Typography>
+                        <Typography variant="body2">
+                          Integrated Goods and Services Tax, levied on
+                          inter-state transactions and imports.
+                        </Typography>
+                      </CardContent>
+                    </Card>
+                  </Grid>
+                </Grid>
+              </Paper>
             </Grid>
           </Grid>
-        </Box>
+        </Container>
 
-        {totalAmount !== null && (
-          <Box maxWidth={800} mx="auto" mb={4}>
-            <Card >
-              <CardContent sx={{display:"flex",justifyContent:"space-around"}}>
-
-              <Typography variant="subtitle1" color="textSecondary">
-                  Actual Amount (Before GST):
-                </Typography>
-                <Typography variant="h6" color="primary">₹{actualAmount?.toFixed(2)}</Typography>
-               
-                <Typography variant="subtitle1" color="textSecondary">
-                  GST Amount:
-                </Typography>
-                <Typography variant="h6" color="primary">₹{gstAmount?.toFixed(2)}</Typography>
-
-                <Typography variant="subtitle1" color="textSecondary">
-                  Total Amount:
-                </Typography>
-                <Typography variant="h6" color="primary">₹{totalAmount.toFixed(2)}</Typography>
-
-              </CardContent>
-            </Card>
-          </Box>
-        )}
-
-        <Box maxWidth={800} mx="auto" mt={4}>
-          <Paper elevation={2} sx={{ p: 3, textAlign: 'center' }}>
-            <Typography variant="h5" color="primary" gutterBottom>
-              Understanding GST
-            </Typography>
-            <Typography variant="body1" color="textSecondary" paragraph>
-              GST, or Goods and Services Tax, is an indirect tax levied on the supply of goods and services in India. 
-              It has replaced many indirect taxes that previously existed. GST is divided into three parts:
-            </Typography>
-            <ul style={{ textAlign: 'left' }}>
-              <li>
-                <Typography variant="body2" color="textPrimary">
-                  <strong>CGST:</strong> Central Goods and Services Tax, levied by the central government.
-                </Typography>
-              </li>
-              <li>
-                <Typography variant="body2" color="textPrimary">
-                  <strong>SGST:</strong> State Goods and Services Tax, levied by the state government.
-                </Typography>
-              </li>
-              <li>
-                <Typography variant="body2" color="textPrimary">
-                  <strong>IGST:</strong> Integrated Goods and Services Tax, levied on inter-state transactions.
-                </Typography>
-              </li>
-            </ul>
-            <Typography variant="body1" color="textSecondary">
-              This calculator helps you quickly determine the GST on your products and services based on the amount, GST%, 
-              and tax type.
-            </Typography>
-          </Paper>
-        </Box>
+        <Snackbar
+          open={snackbarOpen}
+          autoHideDuration={3000}
+          onClose={handleSnackbarClose}
+          anchorOrigin={{ vertical: "top", horizontal: "center" }}
+        >
+          <Alert
+            onClose={handleSnackbarClose}
+            severity="error"
+            sx={{ width: "100%" }}
+          >
+            Please enter a valid amount to calculate GST.
+          </Alert>
+        </Snackbar>
       </Box>
+    </ThemeProvider>
+  );
+};
+
+interface ResultCardProps {
+  label: string;
+  value: number | null;
+  highlight?: boolean;
+}
+
+const ResultCard: React.FC<ResultCardProps> = ({ label, value, highlight }) => {
+  return (
+    <Box
+      sx={{
+        mb: 2,
+        p: 2,
+        border: `1px solid ${highlight ? "primary.main" : "grey.300"}`,
+        borderRadius: 2,
+        backgroundColor: highlight ? "primary.light" : "transparent",
+      }}
+    >
+      <Typography variant="subtitle1" gutterBottom>
+        {label}
+      </Typography>
+      <Typography
+        variant="h6"
+        sx={{ fontWeight: highlight ? "bold" : "normal" }}
+      >
+        ₹{value?.toFixed(2)}
+      </Typography>
     </Box>
   );
 };
