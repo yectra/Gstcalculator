@@ -102,6 +102,11 @@ export default function GSTCalculator() {
   };
 
   const handleSearch = async (query: string) => {
+
+    if(query=='')
+    {
+      setSearchResults([])
+    }
     try {
       const response = await fetch(
         `https://gst-calculator.azure-api.net/gst-calculator/gst_search?search_value=${encodeURIComponent(
