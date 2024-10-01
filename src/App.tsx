@@ -1,4 +1,4 @@
-import GSTCalculator from "./Gstmain"
+import GSTCalculator from "./components/GstCalculator"
 
 
 function App() {
