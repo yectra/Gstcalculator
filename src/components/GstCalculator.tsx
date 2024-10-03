@@ -19,6 +19,8 @@ import {
   Card,
   CardContent,
   Divider,
+  Select,
+  MenuItem,
 } from "@mui/material";
 import {
   Calculate,
@@ -56,9 +58,7 @@ interface SearchResult {
 export default function GSTCalculator() {
   const [amount, setAmount] = useState<string>("0");
   const [gstRate, setGstRate] = useState<string>("5");
-  const [taxType, setTaxType] = useState<"Exclusive" | "Inclusive">(
-    "Exclusive"
-  );
+  const [taxType, setTaxType] = useState<string>("Exclusive");
   const [totalAmount, setTotalAmount] = useState<number | null>(null);
   const [actualAmount, setActualAmount] = useState<number | null>(null);
   const [gstAmount, setGstAmount] = useState<number | null>(null);
@@ -82,30 +82,37 @@ export default function GSTCalculator() {
 
     setLoading(true);
 
+    console.log(taxType)
+
     const payload = {
       amount,
       gst_percentage: gstRate,
-      is_inclusive: false,
+      is_inclusive: taxType=="Inclusive"?true:false,
     };
 
-    const response = await axios.post(
-      "https://gst-calculator.azure-api.net/gst-calculator/gst_calc",
-      payload
-    );
+    try {
+      const response = await axios.post(
+        "https://gst-calculator.azure-api.net/gst-calculator/gst_calc",
+        payload
+      );
 
-    const gstResult = response.data;
+      const gstResult = response.data;
 
-    setTotalAmount(gstResult.total_amount);
-    setActualAmount(gstResult.actual_amount);
-    setGstAmount(gstResult.gst_amount);
-    setLoading(false);
+      setTotalAmount(gstResult.total_amount);
+      setActualAmount(gstResult.actual_amount);
+      setGstAmount(gstResult.gst_amount);
+    } catch (error) {
+      setSnackbarMessage("Error calculating GST. Please try again.");
+      setSnackbarOpen(true);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleSearch = async (query: string) => {
-
-    if(query=='')
-    {
-      setSearchResults([])
+    if (query === "") {
+      setSearchResults([]);
+      return;
     }
     try {
       const response = await fetch(
@@ -250,20 +257,20 @@ export default function GSTCalculator() {
                     />
                   </Grid>
                   <Grid item xs={12} sm={6}>
-                    <TextField
-                      select
-                      label="Tax Type"
+                    <Select
                       value={taxType}
                       onChange={(e) =>
                         setTaxType(e.target.value as "Exclusive" | "Inclusive")
                       }
                       fullWidth
                       variant="outlined"
+                    
                     >
-                      <option value="Exclusive">Exclusive</option>
-                      <option value="Inclusive">Inclusive</option>
-                    </TextField>
+                      <MenuItem value="Exclusive">Exclusive</MenuItem>
+                      <MenuItem value="Inclusive">Inclusive</MenuItem>
+                    </Select>
                   </Grid>
+
                   <Grid item xs={12}>
                     <Button
                       variant="contained"
